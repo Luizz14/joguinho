@@ -32,6 +32,7 @@ class Game:
         # Start a new game
         self.score = 0
         self.health = PLAYER_MAX_HEALTH
+        self.victory = False
         self.all_sprites = pygame.sprite.Group()
         self.foods = pygame.sprite.Group()
         self.texts = pygame.sprite.Group()
@@ -137,7 +138,11 @@ class Game:
 
         # Check Game Over conditions
         elapsed_time = (pygame.time.get_ticks() - self.start_time) / 1000
-        if self.health <= 0 or elapsed_time >= GAME_DURATION:
+        if self.health <= 0:
+            self.victory = False
+            self.playing = False
+        elif elapsed_time >= GAME_DURATION:
+            self.victory = True
             self.playing = False
 
     def events(self):
@@ -317,6 +322,35 @@ class Game:
         # Now wait for intentional key press
         self.wait_for_key()
 
+    def show_victory_screen(self):
+        if not self.running:
+            return
+        self.screen.fill(SKY_BLUE)
+        self.draw_text("VITÓRIA!", 72, YELLOW, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 4, shadow=True)
+        self.draw_text("Você sobreviveu!", 40, GREEN, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 4 + 80, shadow=True)
+        self.draw_text(f"Pontuação Final: {self.score}", 32, WHITE, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, shadow=True)
+        self.draw_text("Parabéns!", 36, YELLOW, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 60, shadow=True)
+        self.draw_text("Pressione uma tecla para jogar novamente", 24, WHITE, SCREEN_WIDTH / 2, SCREEN_HEIGHT * 3 / 4, shadow=True)
+        pygame.display.flip()
+
+        # Add delay before accepting input (prevents accidental restart)
+        delay_start = pygame.time.get_ticks()
+        delay_duration = 1500  # 1.5 seconds delay
+
+        # Wait and ignore all input during delay
+        while pygame.time.get_ticks() - delay_start < delay_duration:
+            self.clock.tick(FPS)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                    return
+
+        # Clear any remaining events from the queue
+        pygame.event.clear()
+
+        # Now wait for intentional key press
+        self.wait_for_key()
+
     def wait_for_key(self):
         waiting = True
         while waiting:
@@ -345,6 +379,9 @@ g = Game()
 g.show_start_screen()
 while g.running:
     g.new()
-    g.show_go_screen()
+    if g.victory:
+        g.show_victory_screen()
+    else:
+        g.show_go_screen()
 
 pygame.quit()
